@@ -35,5 +35,14 @@ appInit(
         ),
       ),
     );
+  } else {
+    runApp(
+      MongoDataWrapper(
+        appId: realmAppId,
+        schemaObjects: schemaObjects,
+        subscriptionCallback: subscriptionCallback,
+        child: body,
+      ),
+    );
   }
 }
