@@ -6,6 +6,7 @@ import 'package:flutter_app_init/mongo_data_wrapper/mongo_data_wrapper.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 export 'package:realm/realm.dart';
+export 'package:easy_localization/easy_localization.dart';
 
 appInit(
     {String? sentryDsn,
@@ -13,7 +14,8 @@ appInit(
     required List<SchemaObject> schemaObjects,
     required void Function(
             MutableSubscriptionSet mutableSubscriptions, Realm realm)
-        subscriptionCallback, required String realmAppId}) async {
+        subscriptionCallback,
+    required String realmAppId}) async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   if (sentryDsn != null) {
