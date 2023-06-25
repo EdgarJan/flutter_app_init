@@ -1,5 +1,5 @@
 name: flutter_app_init
-version: 0.1.0
+version: 0.1.1
 environment:
   sdk: '>=3.1.0-163.1.beta <4.0.0'
   flutter: ">=3.12.0-1.1.pre"
