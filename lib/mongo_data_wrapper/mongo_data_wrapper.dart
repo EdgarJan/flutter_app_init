@@ -12,42 +12,53 @@ class MongoDataWrapper extends InheritedWidget {
   final List<SchemaObject> schemaObjects;
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
+  final List<Locale>? supportedLocales;
 
   MongoDataWrapper(
       {Key? key,
       required String appId,
       required Widget child,
       required this.schemaObjects,
-      required this.subscriptionCallback})
+      required this.subscriptionCallback,
+      this.supportedLocales})
       : _appId = appId,
         super(
             key: key,
-            child: EasyLocalization(
-              supportedLocales: const [
-                Locale('en'),
-                Locale('ru'),
-                Locale('lt')
-              ],
-              path: 'assets/translations',
-              fallbackLocale: const Locale('en'),
-              child: Builder(builder: (context) {
-                return MaterialApp(
-                  theme: ThemeData(
-                    useMaterial3: true,
-                  ),
-                  localizationsDelegates: context.localizationDelegates,
-                  supportedLocales: context.supportedLocales,
-                  locale: context.locale,
-                  home: LoaderOverlay(
-                    useDefaultLoading: false,
-                    overlayWidget: const Center(
-                      child: CircularProgressIndicator(),
+            child: supportedLocales != null
+                ? EasyLocalization(
+                    supportedLocales: supportedLocales,
+                    path: 'assets/translations',
+                    fallbackLocale: supportedLocales.first,
+                    child: Builder(builder: (context) {
+                      return MaterialApp(
+                        theme: ThemeData(
+                          useMaterial3: true,
+                        ),
+                        localizationsDelegates: context.localizationDelegates,
+                        supportedLocales: context.supportedLocales,
+                        locale: context.locale,
+                        home: LoaderOverlay(
+                          useDefaultLoading: false,
+                          overlayWidget: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          child: child,
+                        ),
+                      );
+                    }),
+                  )
+                : MaterialApp(
+                    theme: ThemeData(
+                      useMaterial3: true,
                     ),
-                    child: child,
-                  ),
-                );
-              }),
-            )) {
+                    home: LoaderOverlay(
+                      useDefaultLoading: false,
+                      overlayWidget: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      child: child,
+                    ),
+                  )) {
     _appConfig = AppConfiguration(_appId);
     _app = App(_appConfig);
     _initRealm();
