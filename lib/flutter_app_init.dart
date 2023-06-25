@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app_init/mongo_data_wrapper/mongo_data_wrapper.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+export 'package:realm/realm.dart';
 
 appInit(
     {String? sentryDsn,
