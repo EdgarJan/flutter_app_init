@@ -7,6 +7,9 @@ import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 export 'package:realm/realm.dart';
 export 'package:easy_localization/easy_localization.dart';
+// carry on sentry ignore
+// ignore: invalid_export_of_internal_element
+export 'package:sentry_flutter/sentry_flutter.dart';
 
 appInit(
     {String? sentryDsn,
