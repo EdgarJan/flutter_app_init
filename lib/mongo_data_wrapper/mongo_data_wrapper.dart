@@ -12,7 +12,6 @@ class MongoDataWrapper extends InheritedWidget {
   final List<SchemaObject> schemaObjects;
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
-  final List<Locale>? supportedLocales;
 
   MongoDataWrapper(
       {Key? key,
@@ -20,7 +19,7 @@ class MongoDataWrapper extends InheritedWidget {
       required Widget child,
       required this.schemaObjects,
       required this.subscriptionCallback,
-      this.supportedLocales})
+      List<Locale>? supportedLocales})
       : _appId = appId,
         super(
             key: key,
@@ -73,7 +72,9 @@ class MongoDataWrapper extends InheritedWidget {
     return context.dependOnInheritedWidgetOfExactType<MongoDataWrapper>();
   }
 
-  
+  dynamic customData() {
+    return _app.currentUser?.customData;
+  }
 
   logOut({required BuildContext context}) {
     context.loaderOverlay.show();
