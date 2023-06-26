@@ -17,7 +17,8 @@ appInit(
     required void Function(
             MutableSubscriptionSet mutableSubscriptions, Realm realm)
         subscriptionCallback,
-    required String realmAppId}) async {
+    required String realmAppId,
+    List<Locale>? supportedLocales}) async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
   if (sentryDsn != null) {
@@ -31,6 +32,7 @@ appInit(
           appId: realmAppId,
           schemaObjects: schemaObjects,
           subscriptionCallback: subscriptionCallback,
+          supportedLocales: supportedLocales,
           child: body,
         ),
       ),
@@ -41,6 +43,7 @@ appInit(
         appId: realmAppId,
         schemaObjects: schemaObjects,
         subscriptionCallback: subscriptionCallback,
+        supportedLocales: supportedLocales,
         child: body,
       ),
     );

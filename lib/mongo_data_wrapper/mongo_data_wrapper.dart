@@ -73,6 +73,8 @@ class MongoDataWrapper extends InheritedWidget {
     return context.dependOnInheritedWidgetOfExactType<MongoDataWrapper>();
   }
 
+  
+
   logOut({required BuildContext context}) {
     context.loaderOverlay.show();
     try {
@@ -98,6 +100,7 @@ class MongoDataWrapper extends InheritedWidget {
 
   _initRealm() {
     if (_app.currentUser != null) {
+      _app.currentUser!.refreshCustomData();
       final configuration =
           Configuration.flexibleSync(_app.currentUser!, schemaObjects);
       Realm? tempRealm;
