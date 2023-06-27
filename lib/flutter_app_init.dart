@@ -21,7 +21,9 @@ appInit(
     required String realmAppId,
     List<Locale>? supportedLocales}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();
+  if (supportedLocales != null){
+    await EasyLocalization.ensureInitialized();
+  }
   if (sentryDsn != null) {
     await SentryFlutter.init(
       (options) {
