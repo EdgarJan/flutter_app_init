@@ -9,6 +9,7 @@ export 'package:easy_localization/easy_localization.dart';
 // carry on sentry ignore
 // ignore: invalid_export_of_internal_element
 export 'package:sentry_flutter/sentry_flutter.dart';
+export 'package:loader_overlay/loader_overlay.dart';
 
 appInit(
     {String? sentryDsn,
