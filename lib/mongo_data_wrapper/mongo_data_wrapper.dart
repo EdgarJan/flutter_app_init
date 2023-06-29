@@ -121,9 +121,8 @@ class MongoDataWrapper extends InheritedWidget {
           if (path != null) {
             realm.value?.close();
             realm.value = null;
-            _deletePath(path).then((value) {
-              _initRealm();
-            });
+            Realm.deleteRealm(path);
+            _initRealm();
           }
         },
       ));
@@ -133,25 +132,6 @@ class MongoDataWrapper extends InheritedWidget {
         subscriptionCallback.call(mutableSubscriptions, tempRealm!);
       });
       realm.value = tempRealm;
-    }
-  }
-
-  Future<void> _deletePath(String path) async {
-    var entity = FileSystemEntity.typeSync(path);
-
-    switch (entity) {
-      case FileSystemEntityType.file:
-        final file = File(path);
-        await file.delete();
-        break;
-      case FileSystemEntityType.directory:
-        final dir = Directory(path);
-        await dir.delete(recursive: true);
-        break;
-      case FileSystemEntityType.notFound:
-        break;
-      default:
-        break;
     }
   }
 }
