@@ -1,8 +1,10 @@
 //Maybe it needs dispose method
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:realm/realm.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class MongoDataWrapper extends InheritedWidget {
   final String _appId;
@@ -103,7 +105,31 @@ class MongoDataWrapper extends InheritedWidget {
     if (_app.currentUser != null) {
       _app.currentUser!.refreshCustomData();
       final configuration =
-          Configuration.flexibleSync(_app.currentUser!, schemaObjects);
+          Configuration.flexibleSync(_app.currentUser!, schemaObjects,
+              syncErrorHandler: (SyncError error) {
+        if (kDebugMode) {
+          print("Error message${error.message}");
+        }
+        Sentry.captureException(
+          error,
+        );
+      },
+              clientResetHandler: DiscardUnsyncedChangesHandler(
+                onBeforeReset: (beforeResetRealm) {
+                  // Executed before the client reset begins.
+                  // Can be used to notify the user that a reset is going
+                  // to happen.
+                },
+                onAfterReset: (beforeResetRealm, afterResetRealm) {
+                  // Executed after the client reset is complete.
+                  // Can be used to notify the user that the reset is done.
+                },
+                onManualResetFallback: (clientResetError) {
+                  // Automatic reset failed. Handle the reset manually here.
+                  // Refer to the "Manual Client Reset Fallback" documentation
+                  // for more information on what you can include here.
+                },
+              ));
       Realm? tempRealm;
       tempRealm = Realm(configuration);
       tempRealm.subscriptions.update((mutableSubscriptions) {
