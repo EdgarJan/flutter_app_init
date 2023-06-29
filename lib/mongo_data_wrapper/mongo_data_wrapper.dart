@@ -117,13 +117,10 @@ class MongoDataWrapper extends InheritedWidget {
         );
       }, clientResetHandler: RecoverOrDiscardUnsyncedChangesHandler(
         onManualResetFallback: (clientResetError) {
-          final path = realm.value?.config.path;
-          if (path != null) {
-            realm.value?.close();
-            realm.value = null;
-            Realm.deleteRealm(path);
-            _initRealm();
-          }
+          realm.value?.close();
+          realm.value = null;
+          clientResetError.resetRealm();
+          _initRealm();
         },
       ));
       Realm? tempRealm;
