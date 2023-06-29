@@ -1,4 +1,6 @@
 //Maybe it needs dispose method
+import 'dart:io';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -113,32 +115,43 @@ class MongoDataWrapper extends InheritedWidget {
         Sentry.captureException(
           error,
         );
-      },
-              clientResetHandler: DiscardUnsyncedChangesHandler(
-                onBeforeReset: (beforeResetRealm) {
-                  // Executed before the client reset begins.
-                  // Can be used to notify the user that a reset is going
-                  // to happen.
-                },
-                onAfterReset: (beforeResetRealm, afterResetRealm) {
-                  // Executed after the client reset is complete.
-                  // Can be used to notify the user that the reset is done.
-                },
-                onManualResetFallback: (clientResetError) {
-                  if (kDebugMode) {
-                    print("Error message${clientResetError.message}");
-                  }
-                  Sentry.captureException(
-                    clientResetError,
-                  );
-                },
-              ));
+      }, clientResetHandler: RecoverOrDiscardUnsyncedChangesHandler(
+        onManualResetFallback: (clientResetError) {
+          final path = realm.value?.config.path;
+          if (path != null) {
+            realm.value?.close();
+            realm.value = null;
+            _deletePath(path).then((value) {
+              _initRealm();
+            });
+          }
+        },
+      ));
       Realm? tempRealm;
       tempRealm = Realm(configuration);
       tempRealm.subscriptions.update((mutableSubscriptions) {
         subscriptionCallback.call(mutableSubscriptions, tempRealm!);
       });
       realm.value = tempRealm;
+    }
+  }
+
+  Future<void> _deletePath(String path) async {
+    var entity = FileSystemEntity.typeSync(path);
+
+    switch (entity) {
+      case FileSystemEntityType.file:
+        final file = File(path);
+        await file.delete();
+        break;
+      case FileSystemEntityType.directory:
+        final dir = Directory(path);
+        await dir.delete(recursive: true);
+        break;
+      case FileSystemEntityType.notFound:
+        break;
+      default:
+        break;
     }
   }
 }
