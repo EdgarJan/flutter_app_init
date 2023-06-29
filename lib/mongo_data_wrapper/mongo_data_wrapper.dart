@@ -125,9 +125,12 @@ class MongoDataWrapper extends InheritedWidget {
                   // Can be used to notify the user that the reset is done.
                 },
                 onManualResetFallback: (clientResetError) {
-                  // Automatic reset failed. Handle the reset manually here.
-                  // Refer to the "Manual Client Reset Fallback" documentation
-                  // for more information on what you can include here.
+                  if (kDebugMode) {
+                    print("Error message${clientResetError.message}");
+                  }
+                  Sentry.captureException(
+                    clientResetError,
+                  );
                 },
               ));
       Realm? tempRealm;
