@@ -1,6 +1,4 @@
 //Maybe it needs dispose method
-import 'dart:io';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -115,16 +113,17 @@ class MongoDataWrapper extends InheritedWidget {
         Sentry.captureException(
           error,
         );
-      }, clientResetHandler: RecoverOrDiscardUnsyncedChangesHandler(
-        onManualResetFallback: (clientResetError) {
-          realm.value?.close();
-          realm.value = null;
-          clientResetError.resetRealm();
-          _initRealm();
-        },
-      ));
+      });
       Realm? tempRealm;
-      tempRealm = Realm(configuration);
+      try {
+        tempRealm = Realm(configuration);
+      } catch (e) {
+        tempRealm?.close();
+        _app.currentUser?.logOut();
+        Realm.deleteRealm(configuration.path);
+        _initRealm();
+        return;
+      }
       tempRealm.subscriptions.update((mutableSubscriptions) {
         subscriptionCallback.call(mutableSubscriptions, tempRealm!);
       });
