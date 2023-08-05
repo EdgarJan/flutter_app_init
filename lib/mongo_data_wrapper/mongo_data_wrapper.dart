@@ -114,26 +114,11 @@ class MongoDataWrapper extends InheritedWidget {
           error,
         );
       });
-      Realm? tempRealm;
-      bool isInitSuccessful = false;
+      realm.value = Realm(configuration);
 
-      try {
-        tempRealm = Realm(configuration);
-        isInitSuccessful = true;
-      } catch (e) {
-        tempRealm?.close();
-        _app.currentUser?.logOut().then((value) {
-          Realm.deleteRealm(configuration.path);
-          _initRealm();
-        });
-      }
-
-      if (isInitSuccessful) {
-        tempRealm?.subscriptions.update((mutableSubscriptions) {
-          subscriptionCallback.call(mutableSubscriptions, tempRealm!);
-        });
-        realm.value = tempRealm;
-      }
+      realm.value?.subscriptions.update((mutableSubscriptions) {
+        subscriptionCallback.call(mutableSubscriptions, realm.value!);
+      });
     }
   }
 }
