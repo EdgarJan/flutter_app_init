@@ -52,6 +52,7 @@ appInit(
         subscriptionCallback: subscriptionCallback,
         supportedLocales: supportedLocales,
         builder: builder,
+        visualDensity: visualDensity,
         child: body,
       ),
     );
