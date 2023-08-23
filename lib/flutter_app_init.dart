@@ -16,9 +16,10 @@ appInit(
     required Widget body,
     required List<SchemaObject> schemaObjects,
     required void Function(
-            MutableSubscriptionSet mutableSubscriptions, Realm realm)
+            MutableSubscriptionSet mutableSubscriptions, Realm realm,)
         subscriptionCallback,
     required String realmAppId,
+    TransitionBuilder? builder,
     List<Locale>? supportedLocales}) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supportedLocales != null){
@@ -36,6 +37,7 @@ appInit(
           schemaObjects: schemaObjects,
           subscriptionCallback: subscriptionCallback,
           supportedLocales: supportedLocales,
+          builder: builder,
           child: body,
         ),
       ),
@@ -47,6 +49,7 @@ appInit(
         schemaObjects: schemaObjects,
         subscriptionCallback: subscriptionCallback,
         supportedLocales: supportedLocales,
+        builder: builder,
         child: body,
       ),
     );
