@@ -22,6 +22,7 @@ class MongoDataWrapper extends InheritedWidget {
       required this.schemaObjects,
       required this.subscriptionCallback,
       TransitionBuilder? builder,
+      VisualDensity? visualDensity,
       List<Locale>? supportedLocales})
       : _appId = appId,
         super(
@@ -35,6 +36,7 @@ class MongoDataWrapper extends InheritedWidget {
                       return MaterialApp(
                         theme: ThemeData(
                           useMaterial3: true,
+                          visualDensity: visualDensity,
                         ),
                         builder: builder,
                         localizationsDelegates: context.localizationDelegates,

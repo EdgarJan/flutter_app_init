@@ -20,6 +20,7 @@ appInit(
         subscriptionCallback,
     required String realmAppId,
     TransitionBuilder? builder,
+    VisualDensity? visualDensity,
     List<Locale>? supportedLocales}) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supportedLocales != null){
@@ -38,6 +39,7 @@ appInit(
           subscriptionCallback: subscriptionCallback,
           supportedLocales: supportedLocales,
           builder: builder,
+          visualDensity: visualDensity,
           child: body,
         ),
       ),
