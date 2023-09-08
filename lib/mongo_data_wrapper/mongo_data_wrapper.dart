@@ -129,7 +129,7 @@ class MongoDataWrapper extends InheritedWidget {
       });
       realm.value = Realm(syncConfiguration);
 
-      if (localSchemaObjects == null) {
+      if (localSchemaObjects != null) {
         final localConfiguration = Configuration.local(localSchemaObjects!);
         localRealm.value = Realm(localConfiguration);
       }
