@@ -11,7 +11,9 @@ class MongoDataWrapper extends InheritedWidget {
   late final AppConfiguration _appConfig;
   late final App _app;
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
+  final ValueNotifier<Realm?> localRealm = ValueNotifier<Realm?>(null);
   final List<SchemaObject> schemaObjects;
+  final List<SchemaObject>? localSchemaObjects;
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
 
@@ -21,6 +23,7 @@ class MongoDataWrapper extends InheritedWidget {
       required Widget child,
       required this.schemaObjects,
       required this.subscriptionCallback,
+      this.localSchemaObjects,
       TransitionBuilder? builder,
       VisualDensity? visualDensity,
       List<Locale>? supportedLocales})
@@ -71,7 +74,9 @@ class MongoDataWrapper extends InheritedWidget {
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
-    return oldWidget._appId != _appId || realm != oldWidget.realm;
+    return oldWidget._appId != _appId ||
+        realm != oldWidget.realm ||
+        localRealm != oldWidget.localRealm;
   }
 
   static MongoDataWrapper? maybeOf(BuildContext context) {
@@ -86,8 +91,12 @@ class MongoDataWrapper extends InheritedWidget {
     context.loaderOverlay.show();
     try {
       _app.currentUser?.logOut().then((value) {
-        final tempRealm = realm.value;
+        var tempRealm = realm.value;
         realm.value = null;
+        tempRealm?.close();
+
+        tempRealm = localRealm.value;
+        localRealm.value = null;
         tempRealm?.close();
         context.loaderOverlay.hide();
       });
@@ -108,7 +117,7 @@ class MongoDataWrapper extends InheritedWidget {
   _initRealm() {
     if (_app.currentUser != null) {
       _app.currentUser!.refreshCustomData();
-      final configuration =
+      final syncConfiguration =
           Configuration.flexibleSync(_app.currentUser!, schemaObjects,
               syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
@@ -118,7 +127,12 @@ class MongoDataWrapper extends InheritedWidget {
           error,
         );
       });
-      realm.value = Realm(configuration);
+      realm.value = Realm(syncConfiguration);
+
+      if (localSchemaObjects == null) {
+        final localConfiguration = Configuration.local(localSchemaObjects!);
+        localRealm.value = Realm(localConfiguration);
+      }
 
       realm.value?.subscriptions.update((mutableSubscriptions) {
         subscriptionCallback.call(mutableSubscriptions, realm.value!);

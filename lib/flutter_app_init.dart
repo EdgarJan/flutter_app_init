@@ -19,6 +19,7 @@ appInit(
             MutableSubscriptionSet mutableSubscriptions, Realm realm,)
         subscriptionCallback,
     required String realmAppId,
+    List<SchemaObject>? localSchemaObjects,
     TransitionBuilder? builder,
     VisualDensity? visualDensity,
     List<Locale>? supportedLocales}) async {
@@ -36,6 +37,7 @@ appInit(
         MongoDataWrapper(
           appId: realmAppId,
           schemaObjects: schemaObjects,
+          localSchemaObjects: localSchemaObjects,
           subscriptionCallback: subscriptionCallback,
           supportedLocales: supportedLocales,
           builder: builder,
@@ -49,6 +51,7 @@ appInit(
       MongoDataWrapper(
         appId: realmAppId,
         schemaObjects: schemaObjects,
+        localSchemaObjects: localSchemaObjects,
         subscriptionCallback: subscriptionCallback,
         supportedLocales: supportedLocales,
         builder: builder,
