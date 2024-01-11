@@ -11,20 +11,23 @@ export 'package:easy_localization/easy_localization.dart';
 export 'package:sentry_flutter/sentry_flutter.dart';
 export 'package:loader_overlay/loader_overlay.dart';
 
-appInit(
-    {String? sentryDsn,
-    required Widget body,
-    required List<SchemaObject> schemaObjects,
-    required void Function(
-            MutableSubscriptionSet mutableSubscriptions, Realm realm,)
-        subscriptionCallback,
-    required String realmAppId,
-    List<SchemaObject>? localSchemaObjects,
-    TransitionBuilder? builder,
-    VisualDensity? visualDensity,
-    List<Locale>? supportedLocales}) async {
+appInit({
+  String? sentryDsn,
+  required Widget body,
+  required List<SchemaObject> schemaObjects,
+  required void Function(
+    MutableSubscriptionSet mutableSubscriptions,
+    Realm realm,
+  ) subscriptionCallback,
+  required String realmAppId,
+  List<SchemaObject>? localSchemaObjects,
+  TransitionBuilder? builder,
+  VisualDensity? visualDensity,
+  List<Locale>? supportedLocales,
+  void Function(SyncError error)? syncErrorCallback,
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (supportedLocales != null){
+  if (supportedLocales != null) {
     await EasyLocalization.ensureInitialized();
   }
   if (sentryDsn != null) {
@@ -39,6 +42,7 @@ appInit(
           schemaObjects: schemaObjects,
           localSchemaObjects: localSchemaObjects,
           subscriptionCallback: subscriptionCallback,
+          syncErrorCallback: syncErrorCallback,
           supportedLocales: supportedLocales,
           builder: builder,
           visualDensity: visualDensity,
@@ -53,6 +57,7 @@ appInit(
         schemaObjects: schemaObjects,
         localSchemaObjects: localSchemaObjects,
         subscriptionCallback: subscriptionCallback,
+        syncErrorCallback: syncErrorCallback,
         supportedLocales: supportedLocales,
         builder: builder,
         visualDensity: visualDensity,

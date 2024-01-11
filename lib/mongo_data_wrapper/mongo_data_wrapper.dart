@@ -16,9 +16,10 @@ class MongoDataWrapper extends InheritedWidget {
   final List<SchemaObject>? localSchemaObjects;
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
+  final void Function(SyncError error)? syncErrorCallback;
 
   MongoDataWrapper(
-      {Key? key,
+      {super.key,
       required String appId,
       required Widget child,
       required this.schemaObjects,
@@ -26,10 +27,11 @@ class MongoDataWrapper extends InheritedWidget {
       this.localSchemaObjects,
       TransitionBuilder? builder,
       VisualDensity? visualDensity,
-      List<Locale>? supportedLocales})
+      List<Locale>? supportedLocales,
+      this.syncErrorCallback,
+      })
       : _appId = appId,
         super(
-            key: key,
             child: supportedLocales != null
                 ? EasyLocalization(
                     supportedLocales: supportedLocales,
@@ -47,9 +49,11 @@ class MongoDataWrapper extends InheritedWidget {
                         locale: context.locale,
                         home: LoaderOverlay(
                           useDefaultLoading: false,
-                          overlayWidget: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          overlayWidgetBuilder: (progress) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
                           child: child,
                         ),
                       );
@@ -61,9 +65,11 @@ class MongoDataWrapper extends InheritedWidget {
                     ),
                     home: LoaderOverlay(
                       useDefaultLoading: false,
-                      overlayWidget: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                      overlayWidgetBuilder: (progress) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
                       child: child,
                     ),
                   )) {
@@ -122,6 +128,7 @@ class MongoDataWrapper extends InheritedWidget {
               syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
           print("Error message${error.message}");
+          syncErrorCallback?.call(error);
         }
         Sentry.captureException(
           error,
@@ -130,7 +137,8 @@ class MongoDataWrapper extends InheritedWidget {
       realm.value = Realm(syncConfiguration);
 
       if (localSchemaObjects != null) {
-        final localConfiguration = Configuration.local(localSchemaObjects!, shouldDeleteIfMigrationNeeded: true);
+        final localConfiguration = Configuration.local(localSchemaObjects!,
+            shouldDeleteIfMigrationNeeded: true);
         localRealm.value = Realm(localConfiguration);
       }
 
