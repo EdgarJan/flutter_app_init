@@ -24,7 +24,7 @@ appInit({
   TransitionBuilder? builder,
   VisualDensity? visualDensity,
   List<Locale>? supportedLocales,
-  void Function(SyncError error)? syncErrorCallback,
+  void Function(SyncError error, BuildContext context)? syncErrorCallback,
 }) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (supportedLocales != null) {

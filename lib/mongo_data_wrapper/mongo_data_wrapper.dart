@@ -16,21 +16,22 @@ class MongoDataWrapper extends InheritedWidget {
   final List<SchemaObject>? localSchemaObjects;
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
-  final void Function(SyncError error)? syncErrorCallback;
+  final void Function(SyncError error, BuildContext context)? syncErrorCallback;
+  late final GlobalKey<NavigatorState> navigatorKey;
 
-  MongoDataWrapper(
-      {super.key,
-      required String appId,
-      required Widget child,
-      required this.schemaObjects,
-      required this.subscriptionCallback,
-      this.localSchemaObjects,
-      TransitionBuilder? builder,
-      VisualDensity? visualDensity,
-      List<Locale>? supportedLocales,
-      this.syncErrorCallback,
-      })
-      : _appId = appId,
+  MongoDataWrapper._internal({
+    super.key,
+    required String appId,
+    required Widget child,
+    required this.schemaObjects,
+    required this.subscriptionCallback,
+    this.localSchemaObjects,
+    TransitionBuilder? builder,
+    VisualDensity? visualDensity,
+    List<Locale>? supportedLocales,
+    required this.navigatorKey,
+    this.syncErrorCallback,
+  })  : _appId = appId,
         super(
             child: supportedLocales != null
                 ? EasyLocalization(
@@ -39,6 +40,7 @@ class MongoDataWrapper extends InheritedWidget {
                     fallbackLocale: supportedLocales.first,
                     child: Builder(builder: (context) {
                       return MaterialApp(
+                        navigatorKey: navigatorKey,
                         theme: ThemeData(
                           useMaterial3: true,
                           visualDensity: visualDensity,
@@ -60,6 +62,7 @@ class MongoDataWrapper extends InheritedWidget {
                     }),
                   )
                 : MaterialApp(
+                    navigatorKey: navigatorKey,
                     theme: ThemeData(
                       useMaterial3: true,
                     ),
@@ -76,6 +79,34 @@ class MongoDataWrapper extends InheritedWidget {
     _appConfig = AppConfiguration(_appId);
     _app = App(_appConfig);
     _initRealm();
+  }
+
+  factory MongoDataWrapper({
+    required String appId,
+    required Widget child,
+    required List<SchemaObject> schemaObjects,
+    required void Function(
+            MutableSubscriptionSet mutableSubscriptions, Realm realm)
+        subscriptionCallback,
+    List<SchemaObject>? localSchemaObjects,
+    TransitionBuilder? builder,
+    VisualDensity? visualDensity,
+    List<Locale>? supportedLocales,
+    void Function(SyncError error, BuildContext context)? syncErrorCallback,
+  }) {
+    GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+    return MongoDataWrapper._internal(
+      appId: appId,
+      schemaObjects: schemaObjects,
+      subscriptionCallback: subscriptionCallback,
+      localSchemaObjects: localSchemaObjects,
+      syncErrorCallback: syncErrorCallback,
+      navigatorKey: navigatorKey,
+      supportedLocales: supportedLocales,
+      builder: builder,
+      visualDensity: visualDensity,
+      child: child,
+    );
   }
 
   @override
@@ -128,7 +159,8 @@ class MongoDataWrapper extends InheritedWidget {
               syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
           print("Error message${error.message}");
-          syncErrorCallback?.call(error);
+          BuildContext context = navigatorKey.currentState!.overlay!.context;
+          syncErrorCallback?.call(error, context);
         }
         Sentry.captureException(
           error,
