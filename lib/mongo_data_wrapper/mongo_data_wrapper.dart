@@ -8,8 +8,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MongoDataWrapper extends InheritedWidget {
-  late final AppConfiguration _appConfig;
-  late final App _app;
+  AppConfiguration? _appConfig;
+  App? _app;
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
   final ValueNotifier<Realm?> localRealm = ValueNotifier<Realm?>(null);
   final List<SchemaObject> schemaObjects;
@@ -74,7 +74,9 @@ class MongoDataWrapper extends InheritedWidget {
                       child: child,
                     ),
                   )) {
-    _initRealm();
+    _initApp().then(() {
+      _initRealm();
+    });
   }
 
   factory MongoDataWrapper({
@@ -113,21 +115,22 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   dynamic customData() {
-    return _app.currentUser?.customData;
+    return _app?.currentUser?.customData;
   }
 
   logOut({required BuildContext context}) {
     context.loaderOverlay.show();
     try {
-      _app.currentUser?.logOut().then((value) {
+      _app?.currentUser?.logOut().then((value) {
         var tempRealm = realm.value;
         realm.value = null;
         tempRealm?.close();
-
         tempRealm = localRealm.value;
         localRealm.value = null;
         tempRealm?.close();
+        _app = null;
         context.loaderOverlay.hide();
+        _appConfig = null;
       });
     } catch (e) {
       context.loaderOverlay.hide();
@@ -141,23 +144,27 @@ class MongoDataWrapper extends InheritedWidget {
     context.loaderOverlay.show();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('appId', appId);
-    await _app.logIn(credentials);
+    await _initApp();
+    await _app!.logIn(credentials);
     await _initRealm();
     context.loaderOverlay.hide();
   }
 
-  _initRealm() async {
+  _initApp() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? appId = prefs.getString('appId');
     if (appId == null) {
       return;
     }
     _appConfig = AppConfiguration(appId);
-    _app = App(_appConfig);
-    if (_app.currentUser != null) {
-      _app.currentUser!.refreshCustomData();
+    _app = App(_appConfig!);
+  }
+
+  _initRealm() {
+    if (_app?.currentUser != null) {
+      _app!.currentUser!.refreshCustomData();
       final syncConfiguration =
-          Configuration.flexibleSync(_app.currentUser!, schemaObjects,
+          Configuration.flexibleSync(_app!.currentUser!, schemaObjects,
               syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
           print("Error message${error.message}");
@@ -189,7 +196,7 @@ class MongoDataWrapper extends InheritedWidget {
     var tempRealm = realm.value;
     if (tempRealm != null) {
       final path = tempRealm.config.path;
-      _app.currentUser?.logOut().then((value) {
+      _app!.currentUser?.logOut().then((value) {
         realm.value = null;
         tempRealm?.close();
         tempRealm = localRealm.value;
