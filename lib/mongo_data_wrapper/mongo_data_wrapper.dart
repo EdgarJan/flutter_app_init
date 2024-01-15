@@ -78,7 +78,6 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   factory MongoDataWrapper({
-    required String appId,
     required Widget child,
     required List<SchemaObject> schemaObjects,
     required void Function(

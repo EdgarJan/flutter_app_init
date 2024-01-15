@@ -19,7 +19,6 @@ appInit({
     MutableSubscriptionSet mutableSubscriptions,
     Realm realm,
   ) subscriptionCallback,
-  required String realmAppId,
   List<SchemaObject>? localSchemaObjects,
   TransitionBuilder? builder,
   VisualDensity? visualDensity,
@@ -38,7 +37,6 @@ appInit({
       },
       appRunner: () => runApp(
         MongoDataWrapper(
-          appId: realmAppId,
           schemaObjects: schemaObjects,
           localSchemaObjects: localSchemaObjects,
           subscriptionCallback: subscriptionCallback,
@@ -53,7 +51,6 @@ appInit({
   } else {
     runApp(
       MongoDataWrapper(
-        appId: realmAppId,
         schemaObjects: schemaObjects,
         localSchemaObjects: localSchemaObjects,
         subscriptionCallback: subscriptionCallback,
