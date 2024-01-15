@@ -1,14 +1,10 @@
 //Maybe it needs dispose method
-import 'dart:io';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:path/path.dart' as path;
 
 class MongoDataWrapper extends InheritedWidget {
   final String _appId;
@@ -169,9 +165,6 @@ class MongoDataWrapper extends InheritedWidget {
         Sentry.captureException(
           error,
         );
-        if (error.message?.contains("breaking schema change") == true) {
-          _resetLocalDatabase();
-        }
       });
       realm.value = Realm(syncConfiguration);
 
@@ -185,25 +178,5 @@ class MongoDataWrapper extends InheritedWidget {
         subscriptionCallback.call(mutableSubscriptions, realm.value!);
       });
     }
-  }
-
-  Future<void> _resetLocalDatabase() async {
-    var tempRealm = realm.value;
-    realm.value = null;
-    tempRealm?.close();
-    final directory = await getApplicationDocumentsDirectory();
-    final realmFilePath = path.join(directory.path,
-        'default.realm');
-    var realmFiles = Directory(directory.path).listSync().where((item) => path
-        .basename(item.path)
-        .startsWith('default.realm'));
-    for (var file in realmFiles) {
-      try {
-        file.deleteSync();
-      } catch (e) {
-        print("Error deleting realm file: $e");
-      }
-    }
-    _initRealm();
   }
 }
