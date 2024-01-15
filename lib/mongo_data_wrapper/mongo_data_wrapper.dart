@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MongoDataWrapper extends InheritedWidget {
-  final String _appId;
   late final AppConfiguration _appConfig;
   late final App _app;
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
@@ -21,7 +21,6 @@ class MongoDataWrapper extends InheritedWidget {
 
   MongoDataWrapper._internal({
     super.key,
-    required String appId,
     required Widget child,
     required this.schemaObjects,
     required this.subscriptionCallback,
@@ -31,8 +30,7 @@ class MongoDataWrapper extends InheritedWidget {
     List<Locale>? supportedLocales,
     required this.navigatorKey,
     this.syncErrorCallback,
-  })  : _appId = appId,
-        super(
+  }) : super(
             child: supportedLocales != null
                 ? EasyLocalization(
                     supportedLocales: supportedLocales,
@@ -76,8 +74,6 @@ class MongoDataWrapper extends InheritedWidget {
                       child: child,
                     ),
                   )) {
-    _appConfig = AppConfiguration(_appId);
-    _app = App(_appConfig);
     _initRealm();
   }
 
@@ -96,7 +92,6 @@ class MongoDataWrapper extends InheritedWidget {
   }) {
     GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
     return MongoDataWrapper._internal(
-      appId: appId,
       schemaObjects: schemaObjects,
       subscriptionCallback: subscriptionCallback,
       localSchemaObjects: localSchemaObjects,
@@ -111,9 +106,7 @@ class MongoDataWrapper extends InheritedWidget {
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
-    return oldWidget._appId != _appId ||
-        realm != oldWidget.realm ||
-        localRealm != oldWidget.localRealm;
+    return realm != oldWidget.realm || localRealm != oldWidget.localRealm;
   }
 
   static MongoDataWrapper? maybeOf(BuildContext context) {
@@ -143,15 +136,25 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   logIn(
-      {required Credentials credentials, required BuildContext context}) async {
+      {required Credentials credentials,
+      required BuildContext context,
+      required String appId}) async {
     context.loaderOverlay.show();
-    _app.logIn(credentials).then((value) {
-      _initRealm();
-      context.loaderOverlay.hide();
-    });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('appId', appId);
+    await _app.logIn(credentials);
+    await _initRealm();
+    context.loaderOverlay.hide();
   }
 
-  _initRealm() {
+  _initRealm() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? appId = prefs.getString('appId');
+    if (appId == null) {
+      return;
+    }
+    _appConfig = AppConfiguration(appId);
+    _app = App(_appConfig);
     if (_app.currentUser != null) {
       _app.currentUser!.refreshCustomData();
       final syncConfiguration =
