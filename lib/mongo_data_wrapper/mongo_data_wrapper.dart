@@ -165,6 +165,9 @@ class MongoDataWrapper extends InheritedWidget {
         Sentry.captureException(
           error,
         );
+        if (error.message?.contains("breaking schema change") == true) {
+          _resetLocalDatabase();
+        }
       });
       realm.value = Realm(syncConfiguration);
 
@@ -176,6 +179,22 @@ class MongoDataWrapper extends InheritedWidget {
 
       realm.value?.subscriptions.update((mutableSubscriptions) {
         subscriptionCallback.call(mutableSubscriptions, realm.value!);
+      });
+    }
+  }
+
+  _resetLocalDatabase() {
+    var tempRealm = realm.value;
+    if (tempRealm != null) {
+      final path = tempRealm.config.path;
+      _app.currentUser?.logOut().then((value) {
+        realm.value = null;
+        tempRealm?.close();
+        tempRealm = localRealm.value;
+        localRealm.value = null;
+        tempRealm?.close();
+        Realm.deleteRealm(path);
+        _initRealm();
       });
     }
   }
