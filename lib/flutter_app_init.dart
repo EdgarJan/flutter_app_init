@@ -1,68 +1,209 @@
-library flutter_app_init;
+//Maybe it needs dispose method
+import 'dart:io';
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app_init/mongo_data_wrapper/mongo_data_wrapper.dart';
+import 'package:loader_overlay/loader_overlay.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-export 'package:easy_localization/easy_localization.dart';
-// carry on sentry ignore
-// ignore: invalid_export_of_internal_element
-export 'package:sentry_flutter/sentry_flutter.dart';
-export 'package:loader_overlay/loader_overlay.dart';
+import 'package:path/path.dart' as path;
 
-appInit({
-  String? sentryDsn,
-  required Widget body,
-  required List<SchemaObject> schemaObjects,
-  required void Function(
-    MutableSubscriptionSet mutableSubscriptions,
-    Realm realm,
-  ) subscriptionCallback,
-  required String realmAppId,
-  List<SchemaObject>? localSchemaObjects,
-  TransitionBuilder? builder,
-  VisualDensity? visualDensity,
-  List<Locale>? supportedLocales,
-  void Function(SyncError error, BuildContext context)? syncErrorCallback,
-}) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  if (supportedLocales != null) {
-    await EasyLocalization.ensureInitialized();
+class MongoDataWrapper extends InheritedWidget {
+  final String _appId;
+  late final AppConfiguration _appConfig;
+  late final App _app;
+  final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
+  final ValueNotifier<Realm?> localRealm = ValueNotifier<Realm?>(null);
+  final List<SchemaObject> schemaObjects;
+  final List<SchemaObject>? localSchemaObjects;
+  final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
+      subscriptionCallback;
+  final void Function(SyncError error, BuildContext context)? syncErrorCallback;
+  late final GlobalKey<NavigatorState> navigatorKey;
+
+  MongoDataWrapper._internal({
+    super.key,
+    required String appId,
+    required Widget child,
+    required this.schemaObjects,
+    required this.subscriptionCallback,
+    this.localSchemaObjects,
+    TransitionBuilder? builder,
+    VisualDensity? visualDensity,
+    List<Locale>? supportedLocales,
+    required this.navigatorKey,
+    this.syncErrorCallback,
+  })  : _appId = appId,
+        super(
+            child: supportedLocales != null
+                ? EasyLocalization(
+                    supportedLocales: supportedLocales,
+                    path: 'assets/translations',
+                    fallbackLocale: supportedLocales.first,
+                    child: Builder(builder: (context) {
+                      return MaterialApp(
+                        navigatorKey: navigatorKey,
+                        theme: ThemeData(
+                          useMaterial3: true,
+                          visualDensity: visualDensity,
+                        ),
+                        builder: builder,
+                        localizationsDelegates: context.localizationDelegates,
+                        supportedLocales: context.supportedLocales,
+                        locale: context.locale,
+                        home: LoaderOverlay(
+                          useDefaultLoading: false,
+                          overlayWidgetBuilder: (progress) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                          child: child,
+                        ),
+                      );
+                    }),
+                  )
+                : MaterialApp(
+                    navigatorKey: navigatorKey,
+                    theme: ThemeData(
+                      useMaterial3: true,
+                    ),
+                    home: LoaderOverlay(
+                      useDefaultLoading: false,
+                      overlayWidgetBuilder: (progress) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                      child: child,
+                    ),
+                  )) {
+    _appConfig = AppConfiguration(_appId);
+    _app = App(_appConfig);
+    _initRealm();
   }
-  if (sentryDsn != null) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = 1.0;
-      },
-      appRunner: () => runApp(
-        MongoDataWrapper(
-          appId: realmAppId,
-          schemaObjects: schemaObjects,
-          localSchemaObjects: localSchemaObjects,
-          subscriptionCallback: subscriptionCallback,
-          syncErrorCallback: syncErrorCallback,
-          supportedLocales: supportedLocales,
-          builder: builder,
-          visualDensity: visualDensity,
-          child: body,
-        ),
-      ),
+
+  factory MongoDataWrapper({
+    required String appId,
+    required Widget child,
+    required List<SchemaObject> schemaObjects,
+    required void Function(
+            MutableSubscriptionSet mutableSubscriptions, Realm realm)
+        subscriptionCallback,
+    List<SchemaObject>? localSchemaObjects,
+    TransitionBuilder? builder,
+    VisualDensity? visualDensity,
+    List<Locale>? supportedLocales,
+    void Function(SyncError error, BuildContext context)? syncErrorCallback,
+  }) {
+    GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+    return MongoDataWrapper._internal(
+      appId: appId,
+      schemaObjects: schemaObjects,
+      subscriptionCallback: subscriptionCallback,
+      localSchemaObjects: localSchemaObjects,
+      syncErrorCallback: syncErrorCallback,
+      navigatorKey: navigatorKey,
+      supportedLocales: supportedLocales,
+      builder: builder,
+      visualDensity: visualDensity,
+      child: child,
     );
-  } else {
-    runApp(
-      MongoDataWrapper(
-        appId: realmAppId,
-        schemaObjects: schemaObjects,
-        localSchemaObjects: localSchemaObjects,
-        subscriptionCallback: subscriptionCallback,
-        syncErrorCallback: syncErrorCallback,
-        supportedLocales: supportedLocales,
-        builder: builder,
-        visualDensity: visualDensity,
-        child: body,
-      ),
-    );
+  }
+
+  @override
+  bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
+    return oldWidget._appId != _appId ||
+        realm != oldWidget.realm ||
+        localRealm != oldWidget.localRealm;
+  }
+
+  static MongoDataWrapper? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<MongoDataWrapper>();
+  }
+
+  dynamic customData() {
+    return _app.currentUser?.customData;
+  }
+
+  logOut({required BuildContext context}) {
+    context.loaderOverlay.show();
+    try {
+      _app.currentUser?.logOut().then((value) {
+        var tempRealm = realm.value;
+        realm.value = null;
+        tempRealm?.close();
+
+        tempRealm = localRealm.value;
+        localRealm.value = null;
+        tempRealm?.close();
+        context.loaderOverlay.hide();
+      });
+    } catch (e) {
+      context.loaderOverlay.hide();
+    }
+  }
+
+  logIn(
+      {required Credentials credentials, required BuildContext context}) async {
+    context.loaderOverlay.show();
+    _app.logIn(credentials).then((value) {
+      _initRealm();
+      context.loaderOverlay.hide();
+    });
+  }
+
+  _initRealm() {
+    if (_app.currentUser != null) {
+      _app.currentUser!.refreshCustomData();
+      final syncConfiguration =
+          Configuration.flexibleSync(_app.currentUser!, schemaObjects,
+              syncErrorHandler: (SyncError error) {
+        if (kDebugMode) {
+          print("Error message${error.message}");
+          BuildContext context = navigatorKey.currentState!.overlay!.context;
+          syncErrorCallback?.call(error, context);
+        }
+        Sentry.captureException(
+          error,
+        );
+        if (error.message?.contains("breaking schema change") == true) {
+          _resetLocalDatabase();
+        }
+      });
+      realm.value = Realm(syncConfiguration);
+
+      if (localSchemaObjects != null) {
+        final localConfiguration = Configuration.local(localSchemaObjects!,
+            shouldDeleteIfMigrationNeeded: true);
+        localRealm.value = Realm(localConfiguration);
+      }
+
+      realm.value?.subscriptions.update((mutableSubscriptions) {
+        subscriptionCallback.call(mutableSubscriptions, realm.value!);
+      });
+    }
+  }
+
+  Future<void> _resetLocalDatabase() async {
+    var tempRealm = realm.value;
+    realm.value = null;
+    tempRealm?.close();
+    final directory = await getApplicationDocumentsDirectory();
+    final realmFilePath = path.join(directory.path,
+        'default.realm');
+    var realmFiles = Directory(directory.path).listSync().where((item) => path
+        .basename(item.path)
+        .startsWith('default.realm')); // Adjust 'default.realm' as needed
+    for (var file in realmFiles) {
+      try {
+        file.deleteSync();
+      } catch (e) {
+        print("Error deleting realm file: $e");
+      }
+    }
+    _initRealm();
   }
 }
