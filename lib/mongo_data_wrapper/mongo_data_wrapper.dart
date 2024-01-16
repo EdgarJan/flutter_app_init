@@ -210,7 +210,9 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
       builder: widget.builder,
       localizationsDelegates:
           isLocalized ? context.localizationDelegates : null,
-      supportedLocales: isLocalized ? context.supportedLocales : [],
+      supportedLocales: isLocalized
+          ? context.supportedLocales
+          : <Locale>[const Locale('en', 'US')],
       locale: isLocalized ? context.locale : null,
       home: LoaderOverlay(
         useDefaultLoading: false,
