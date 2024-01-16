@@ -15,7 +15,7 @@ class MongoDataWrapper extends InheritedWidget {
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
   final void Function(SyncError error, BuildContext context)? syncErrorCallback;
-  late final GlobalKey<MaterialAppWrapperState> _appKey;
+  late final GlobalKey<_MaterialAppWrapperState> _appKey;
 
   factory MongoDataWrapper({
     required List<SchemaObject> schemaObjects,
@@ -30,8 +30,8 @@ class MongoDataWrapper extends InheritedWidget {
     Key? key,
     required Widget child,
   }) {
-    final GlobalKey<MaterialAppWrapperState> appKey =
-        GlobalKey<MaterialAppWrapperState>();
+    final GlobalKey<_MaterialAppWrapperState> appKey =
+        GlobalKey<_MaterialAppWrapperState>();
     return MongoDataWrapper._(
       schemaObjects: schemaObjects,
       localSchemaObjects: localSchemaObjects,
@@ -56,7 +56,7 @@ class MongoDataWrapper extends InheritedWidget {
     VisualDensity? visualDensity,
     Key? key,
     required Widget child,
-    required GlobalKey<MaterialAppWrapperState> appKey,
+    required GlobalKey<_MaterialAppWrapperState> appKey,
   })  : _appKey = appKey,
         super(
             child: MaterialAppWrapper(
@@ -173,31 +173,45 @@ class MaterialAppWrapper extends StatefulWidget {
   final List<Locale>? supportedLocales;
   final TransitionBuilder? builder;
   final VisualDensity? visualDensity;
-  const MaterialAppWrapper(
-      {super.key,
-      required this.child,
-      this.supportedLocales,
-      this.builder,
-      this.visualDensity});
+
+  const MaterialAppWrapper({
+    super.key,
+    required this.child,
+    this.supportedLocales,
+    this.builder,
+    this.visualDensity,
+  });
 
   @override
-  State<MaterialAppWrapper> createState() => MaterialAppWrapperState();
+  State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();
 }
 
-class MaterialAppWrapperState extends State<MaterialAppWrapper> {
+class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
   AppConfiguration? _appConfig;
   App? _app;
   @override
   Widget build(BuildContext context) {
-    final app = MaterialApp(
+    return widget.supportedLocales != null
+        ? EasyLocalization(
+            supportedLocales: widget.supportedLocales!,
+            path: 'assets/translations',
+            fallbackLocale: widget.supportedLocales!.first,
+            child: _buildMaterialApp(context, true),
+          )
+        : _buildMaterialApp(context, false);
+  }
+
+  Widget _buildMaterialApp(BuildContext context, bool isLocalized) {
+    return MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
         visualDensity: widget.visualDensity,
       ),
       builder: widget.builder,
-      localizationsDelegates: context.localizationDelegates,
-      supportedLocales: context.supportedLocales,
-      locale: context.locale,
+      localizationsDelegates:
+          isLocalized ? context.localizationDelegates : null,
+      supportedLocales: isLocalized ? context.supportedLocales : [],
+      locale: isLocalized ? context.locale : null,
       home: LoaderOverlay(
         useDefaultLoading: false,
         overlayWidgetBuilder: (progress) {
@@ -208,21 +222,8 @@ class MaterialAppWrapperState extends State<MaterialAppWrapper> {
         child: widget.child,
       ),
     );
-    if (widget.supportedLocales != null) {
-      return EasyLocalization(
-        supportedLocales: widget.supportedLocales!,
-        path: 'assets/translations',
-        fallbackLocale: widget.supportedLocales!.first,
-        child: Builder(builder: (context) {
-          return app;
-        }),
-      );
-    }
-    return app;
   }
 }
-
-
 
 //why we need iternal constructor?
 // here is example of widget we cannot do without internal constructor
