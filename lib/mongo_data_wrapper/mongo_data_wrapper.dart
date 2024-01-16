@@ -8,8 +8,6 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MongoDataWrapper extends InheritedWidget {
-  AppConfiguration? _appConfig;
-  App? _app;
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
   final ValueNotifier<Realm?> localRealm = ValueNotifier<Realm?>(null);
   final List<SchemaObject> schemaObjects;
@@ -17,93 +15,57 @@ class MongoDataWrapper extends InheritedWidget {
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
   final void Function(SyncError error, BuildContext context)? syncErrorCallback;
-  late final GlobalKey<NavigatorState> navigatorKey;
-
-  MongoDataWrapper._internal({
-    super.key,
-    required Widget child,
-    required this.schemaObjects,
-    required this.subscriptionCallback,
-    this.localSchemaObjects,
-    TransitionBuilder? builder,
-    VisualDensity? visualDensity,
-    List<Locale>? supportedLocales,
-    required this.navigatorKey,
-    this.syncErrorCallback,
-  }) : super(
-            child: supportedLocales != null
-                ? EasyLocalization(
-                    supportedLocales: supportedLocales,
-                    path: 'assets/translations',
-                    fallbackLocale: supportedLocales.first,
-                    child: Builder(builder: (context) {
-                      return MaterialApp(
-                        navigatorKey: navigatorKey,
-                        theme: ThemeData(
-                          useMaterial3: true,
-                          visualDensity: visualDensity,
-                        ),
-                        builder: builder,
-                        localizationsDelegates: context.localizationDelegates,
-                        supportedLocales: context.supportedLocales,
-                        locale: context.locale,
-                        home: LoaderOverlay(
-                          useDefaultLoading: false,
-                          overlayWidgetBuilder: (progress) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          },
-                          child: child,
-                        ),
-                      );
-                    }),
-                  )
-                : MaterialApp(
-                    navigatorKey: navigatorKey,
-                    theme: ThemeData(
-                      useMaterial3: true,
-                    ),
-                    home: LoaderOverlay(
-                      useDefaultLoading: false,
-                      overlayWidgetBuilder: (progress) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
-                        );
-                      },
-                      child: child,
-                    ),
-                  )) {
-    _initApp().then(() {
-      _initRealm();
-    });
-  }
+  late final GlobalKey<MaterialAppWrapperState> _appKey;
 
   factory MongoDataWrapper({
-    required Widget child,
     required List<SchemaObject> schemaObjects,
+    List<SchemaObject>? localSchemaObjects,
     required void Function(
             MutableSubscriptionSet mutableSubscriptions, Realm realm)
         subscriptionCallback,
-    List<SchemaObject>? localSchemaObjects,
-    TransitionBuilder? builder,
-    VisualDensity? visualDensity,
-    List<Locale>? supportedLocales,
     void Function(SyncError error, BuildContext context)? syncErrorCallback,
+    TransitionBuilder? builder,
+    List<Locale>? supportedLocales,
+    VisualDensity? visualDensity,
+    Key? key,
+    required Widget child,
   }) {
-    GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-    return MongoDataWrapper._internal(
+    final GlobalKey<MaterialAppWrapperState> appKey =
+        GlobalKey<MaterialAppWrapperState>();
+    return MongoDataWrapper._(
       schemaObjects: schemaObjects,
-      subscriptionCallback: subscriptionCallback,
       localSchemaObjects: localSchemaObjects,
+      subscriptionCallback: subscriptionCallback,
       syncErrorCallback: syncErrorCallback,
-      navigatorKey: navigatorKey,
-      supportedLocales: supportedLocales,
       builder: builder,
+      supportedLocales: supportedLocales,
       visualDensity: visualDensity,
+      key: key,
+      appKey: appKey,
       child: child,
     );
   }
+
+  MongoDataWrapper._({
+    required this.schemaObjects,
+    this.localSchemaObjects,
+    required this.subscriptionCallback,
+    this.syncErrorCallback,
+    TransitionBuilder? builder,
+    List<Locale>? supportedLocales,
+    VisualDensity? visualDensity,
+    Key? key,
+    required Widget child,
+    required GlobalKey<MaterialAppWrapperState> appKey,
+  })  : _appKey = appKey,
+        super(
+            child: MaterialAppWrapper(
+          builder: builder,
+          visualDensity: visualDensity,
+          supportedLocales: supportedLocales,
+          key: appKey,
+          child: child,
+        ));
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
@@ -115,39 +77,36 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   dynamic customData() {
-    return _app?.currentUser?.customData;
+    return _appKey.currentState?._app?.currentUser?.customData;
   }
 
-  logOut({required BuildContext context}) {
-    context.loaderOverlay.show();
+  logOut() {
+    _appKey.currentContext?.loaderOverlay.show();
     try {
-      _app?.currentUser?.logOut().then((value) {
+      _appKey.currentState?._app?.currentUser?.logOut().then((value) {
         var tempRealm = realm.value;
         realm.value = null;
         tempRealm?.close();
         tempRealm = localRealm.value;
         localRealm.value = null;
         tempRealm?.close();
-        _app = null;
-        context.loaderOverlay.hide();
-        _appConfig = null;
+        _appKey.currentState?._app = null;
+        _appKey.currentContext?.loaderOverlay.hide();
+        _appKey.currentState?._appConfig = null;
       });
     } catch (e) {
-      context.loaderOverlay.hide();
+      _appKey.currentContext?.loaderOverlay.hide();
     }
   }
 
-  logIn(
-      {required Credentials credentials,
-      required BuildContext context,
-      required String appId}) async {
-    context.loaderOverlay.show();
+  logIn({required Credentials credentials, required String appId}) async {
+    _appKey.currentContext?.loaderOverlay.show();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('appId', appId);
     await _initApp();
-    await _app!.logIn(credentials);
+    await _appKey.currentState?._app!.logIn(credentials);
     await _initRealm();
-    context.loaderOverlay.hide();
+    _appKey.currentContext?.loaderOverlay.hide();
   }
 
   _initApp() async {
@@ -156,19 +115,19 @@ class MongoDataWrapper extends InheritedWidget {
     if (appId == null) {
       return;
     }
-    _appConfig = AppConfiguration(appId);
-    _app = App(_appConfig!);
+    _appKey.currentState?._appConfig = AppConfiguration(appId);
+    _appKey.currentState?._app = App((_appKey.currentState?._appConfig)!);
   }
 
   _initRealm() {
-    if (_app?.currentUser != null) {
-      _app!.currentUser!.refreshCustomData();
-      final syncConfiguration =
-          Configuration.flexibleSync(_app!.currentUser!, schemaObjects,
-              syncErrorHandler: (SyncError error) {
+    if (_appKey.currentState?._app?.currentUser != null) {
+      _appKey.currentState?._app!.currentUser!.refreshCustomData();
+      final syncConfiguration = Configuration.flexibleSync(
+          (_appKey.currentState?._app!.currentUser)!, schemaObjects,
+          syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
           print("Error message${error.message}");
-          BuildContext context = navigatorKey.currentState!.overlay!.context;
+          BuildContext context = _appKey.currentState!.context;
           syncErrorCallback?.call(error, context);
         }
         Sentry.captureException(
@@ -196,7 +155,7 @@ class MongoDataWrapper extends InheritedWidget {
     var tempRealm = realm.value;
     if (tempRealm != null) {
       final path = tempRealm.config.path;
-      _app!.currentUser?.logOut().then((value) {
+      _appKey.currentState?._app!.currentUser?.logOut().then((value) {
         realm.value = null;
         tempRealm?.close();
         tempRealm = localRealm.value;
@@ -208,3 +167,113 @@ class MongoDataWrapper extends InheritedWidget {
     }
   }
 }
+
+class MaterialAppWrapper extends StatefulWidget {
+  final Widget child;
+  final List<Locale>? supportedLocales;
+  final TransitionBuilder? builder;
+  final VisualDensity? visualDensity;
+  const MaterialAppWrapper(
+      {super.key,
+      required this.child,
+      this.supportedLocales,
+      this.builder,
+      this.visualDensity});
+
+  @override
+  State<MaterialAppWrapper> createState() => MaterialAppWrapperState();
+}
+
+class MaterialAppWrapperState extends State<MaterialAppWrapper> {
+  AppConfiguration? _appConfig;
+  App? _app;
+  @override
+  Widget build(BuildContext context) {
+    final app = MaterialApp(
+      theme: ThemeData(
+        useMaterial3: true,
+        visualDensity: widget.visualDensity,
+      ),
+      builder: widget.builder,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
+      home: LoaderOverlay(
+        useDefaultLoading: false,
+        overlayWidgetBuilder: (progress) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+        child: widget.child,
+      ),
+    );
+    if (widget.supportedLocales != null) {
+      return EasyLocalization(
+        supportedLocales: widget.supportedLocales!,
+        path: 'assets/translations',
+        fallbackLocale: widget.supportedLocales!.first,
+        child: Builder(builder: (context) {
+          return app;
+        }),
+      );
+    }
+    return app;
+  }
+}
+
+
+
+//why we need iternal constructor?
+// here is example of widget we cannot do without internal constructor
+// class Test1 extends InheritedWidget {
+//   final GlobalKey<_Test1MaterialAppState> materialAppKey;
+
+//   Test1({super.key, required Widget child})
+//       : materialAppKey = GlobalKey<_Test1MaterialAppState>(),
+//         super(child: _Test1MaterialApp(key: materialAppKey, child: child));
+
+//   static Test1 of(BuildContext context) {
+//     final Test1? result = context.dependOnInheritedWidgetOfExactType<Test1>();
+//     assert(result != null, 'No Test1 found in context');
+//     return result!;
+//   }
+
+//   @override
+//   bool updateShouldNotify(Test1 oldWidget) {
+//     // Check if the state of _Test1MaterialApp has changed
+//     return oldWidget.materialAppKey.currentState?.hasStateChanged ?? false;
+//   }
+// }
+
+// class _Test1MaterialApp extends StatefulWidget {
+//   final Widget child;
+
+//   const _Test1MaterialApp({Key? key, required this.child}) : super(key: key);
+
+//   @override
+//   _Test1MaterialAppState createState() => _Test1MaterialAppState();
+// }
+
+// class _Test1MaterialAppState extends State<_Test1MaterialApp> {
+//   bool hasStateChanged = false;
+
+//   void changeState() {
+//     setState(() {
+//       hasStateChanged = !hasStateChanged; // Change some internal state
+//     });
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Flutter Demo',
+//       home: Scaffold(
+//         appBar: AppBar(
+//           title: Text('Home Page'),
+//         ),
+//         body: widget.child,
+//       ),
+//     );
+//   }
+// }
