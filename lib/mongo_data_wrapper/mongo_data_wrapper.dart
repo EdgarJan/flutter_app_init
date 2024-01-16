@@ -196,7 +196,9 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
             supportedLocales: widget.supportedLocales!,
             path: 'assets/translations',
             fallbackLocale: widget.supportedLocales!.first,
-            child: _buildMaterialApp(context, true),
+            child: Builder(builder: (context) {
+              return _buildMaterialApp(context, true);
+            }),
           )
         : _buildMaterialApp(context, false);
   }
