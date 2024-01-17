@@ -65,7 +65,11 @@ class MongoDataWrapper extends InheritedWidget {
           supportedLocales: supportedLocales,
           key: appKey,
           child: child,
-        ));
+        )) {
+    _initApp().then((_) {
+      _initRealm();
+    });
+  }
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
