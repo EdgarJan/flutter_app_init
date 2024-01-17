@@ -15,7 +15,8 @@ class MongoDataWrapper extends InheritedWidget {
   final void Function(MutableSubscriptionSet mutableSubscriptions, Realm realm)
       subscriptionCallback;
   final void Function(SyncError error, BuildContext context)? syncErrorCallback;
-  late final GlobalKey<_MaterialAppWrapperState> _appKey;
+  late final GlobalKey<NavigatorState> _appKey;
+  final MutableData mutableData = MutableData();
 
   factory MongoDataWrapper({
     required List<SchemaObject> schemaObjects,
@@ -30,8 +31,7 @@ class MongoDataWrapper extends InheritedWidget {
     Key? key,
     required Widget child,
   }) {
-    final GlobalKey<_MaterialAppWrapperState> appKey =
-        GlobalKey<_MaterialAppWrapperState>();
+    final GlobalKey<NavigatorState> appKey = GlobalKey<NavigatorState>();
     return MongoDataWrapper._(
       schemaObjects: schemaObjects,
       localSchemaObjects: localSchemaObjects,
@@ -56,7 +56,7 @@ class MongoDataWrapper extends InheritedWidget {
     VisualDensity? visualDensity,
     Key? key,
     required Widget child,
-    required GlobalKey<_MaterialAppWrapperState> appKey,
+    required GlobalKey<NavigatorState> appKey,
   })  : _appKey = appKey,
         super(
             child: MaterialAppWrapper(
@@ -77,22 +77,22 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   dynamic customData() {
-    return _appKey.currentState?._app?.currentUser?.customData;
+    return mutableData.app?.currentUser?.customData;
   }
 
   logOut() {
     _appKey.currentContext?.loaderOverlay.show();
     try {
-      _appKey.currentState?._app?.currentUser?.logOut().then((value) {
+      mutableData.app?.currentUser?.logOut().then((value) {
         var tempRealm = realm.value;
         realm.value = null;
         tempRealm?.close();
         tempRealm = localRealm.value;
         localRealm.value = null;
         tempRealm?.close();
-        _appKey.currentState?._app = null;
+        mutableData.app = null;
         _appKey.currentContext?.loaderOverlay.hide();
-        _appKey.currentState?._appConfig = null;
+        mutableData.appConfig = null;
       });
     } catch (e) {
       _appKey.currentContext?.loaderOverlay.hide();
@@ -104,7 +104,7 @@ class MongoDataWrapper extends InheritedWidget {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('appId', appId);
     await _initApp();
-    await _appKey.currentState?._app!.logIn(credentials);
+    await mutableData.app!.logIn(credentials);
     await _initRealm();
     _appKey.currentContext?.loaderOverlay.hide();
   }
@@ -115,15 +115,15 @@ class MongoDataWrapper extends InheritedWidget {
     if (appId == null) {
       return;
     }
-    _appKey.currentState?._appConfig = AppConfiguration(appId);
-    _appKey.currentState?._app = App((_appKey.currentState?._appConfig)!);
+    mutableData.appConfig = AppConfiguration(appId);
+    mutableData.app = App((mutableData.appConfig)!);
   }
 
   _initRealm() {
-    if (_appKey.currentState?._app?.currentUser != null) {
-      _appKey.currentState?._app!.currentUser!.refreshCustomData();
+    if (mutableData.app?.currentUser != null) {
+      mutableData.app!.currentUser!.refreshCustomData();
       final syncConfiguration = Configuration.flexibleSync(
-          (_appKey.currentState?._app!.currentUser)!, schemaObjects,
+          (mutableData.app!.currentUser)!, schemaObjects,
           syncErrorHandler: (SyncError error) {
         if (kDebugMode) {
           print("Error message${error.message}");
@@ -155,7 +155,7 @@ class MongoDataWrapper extends InheritedWidget {
     var tempRealm = realm.value;
     if (tempRealm != null) {
       final path = tempRealm.config.path;
-      _appKey.currentState?._app!.currentUser?.logOut().then((value) {
+      mutableData.app!.currentUser?.logOut().then((value) {
         realm.value = null;
         tempRealm?.close();
         tempRealm = localRealm.value;
@@ -168,7 +168,12 @@ class MongoDataWrapper extends InheritedWidget {
   }
 }
 
-class MaterialAppWrapper extends StatefulWidget {
+class MutableData {
+  AppConfiguration? appConfig;
+  App? app;
+}
+
+class MaterialAppWrapper extends StatelessWidget {
   final Widget child;
   final List<Locale>? supportedLocales;
   final TransitionBuilder? builder;
@@ -183,19 +188,12 @@ class MaterialAppWrapper extends StatefulWidget {
   });
 
   @override
-  State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();
-}
-
-class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
-  AppConfiguration? _appConfig;
-  App? _app;
-  @override
   Widget build(BuildContext context) {
-    return widget.supportedLocales != null
+    return supportedLocales != null
         ? EasyLocalization(
-            supportedLocales: widget.supportedLocales!,
+            supportedLocales: supportedLocales!,
             path: 'assets/translations',
-            fallbackLocale: widget.supportedLocales!.first,
+            fallbackLocale: supportedLocales!.first,
             child: Builder(builder: (context) {
               return _buildMaterialApp(context, true);
             }),
@@ -207,9 +205,9 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
     return MaterialApp(
       theme: ThemeData(
         useMaterial3: true,
-        visualDensity: widget.visualDensity,
+        visualDensity: visualDensity,
       ),
-      builder: widget.builder,
+      builder: builder,
       localizationsDelegates:
           isLocalized ? context.localizationDelegates : null,
       supportedLocales: isLocalized
@@ -223,7 +221,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper> {
             child: CircularProgressIndicator(),
           );
         },
-        child: widget.child,
+        child: child,
       ),
     );
   }
