@@ -84,33 +84,34 @@ class MongoDataWrapper extends InheritedWidget {
     return mutableData.app?.currentUser?.customData;
   }
 
-  logOut() {
+  logOut() async {
     _appKey.currentContext?.loaderOverlay.show();
     try {
-      mutableData.app?.currentUser?.logOut().then((value) {
-        var tempRealm = realm.value;
-        realm.value = null;
-        tempRealm?.close();
-        tempRealm = localRealm.value;
-        localRealm.value = null;
-        tempRealm?.close();
-        mutableData.app = null;
-        _appKey.currentContext?.loaderOverlay.hide();
-        mutableData.appConfig = null;
-      });
+      await mutableData.app?.currentUser?.logOut();
+      var tempRealm = realm.value;
+      realm.value = null;
+      tempRealm?.close();
+      tempRealm = localRealm.value;
+      localRealm.value = null;
+      tempRealm?.close();
+      mutableData.app = null;
+      _appKey.currentContext?.loaderOverlay.hide();
+      mutableData.appConfig = null;
     } catch (e) {
       _appKey.currentContext?.loaderOverlay.hide();
     }
   }
 
   logIn({required Credentials credentials, required String appId}) async {
-    _appKey.currentContext?.loaderOverlay.show();
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('appId', appId);
-    await _initApp();
-    await mutableData.app!.logIn(credentials);
-    await _initRealm();
-    _appKey.currentContext?.loaderOverlay.hide();
+    if (mutableData.app?.currentUser != null) {
+      _appKey.currentContext?.loaderOverlay.show();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('appId', appId);
+      await _initApp();
+      await mutableData.app!.logIn(credentials);
+      await _initRealm();
+      _appKey.currentContext?.loaderOverlay.hide();
+    }
   }
 
   _initApp() async {
