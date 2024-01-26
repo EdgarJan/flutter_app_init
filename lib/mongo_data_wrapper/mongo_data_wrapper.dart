@@ -65,11 +65,7 @@ class MongoDataWrapper extends InheritedWidget {
           supportedLocales: supportedLocales,
           key: appKey,
           child: child,
-        )) {
-    _initApp().then((_) {
-      _initRealm();
-    });
-  }
+        )) {}
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
@@ -103,15 +99,13 @@ class MongoDataWrapper extends InheritedWidget {
   }
 
   logIn({required Credentials credentials, required String appId}) async {
-    if (mutableData.app?.currentUser != null) {
-      _appKey.currentContext?.loaderOverlay.show();
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('appId', appId);
-      await _initApp();
-      await mutableData.app!.logIn(credentials);
-      await _initRealm();
-      _appKey.currentContext?.loaderOverlay.hide();
-    }
+    _appKey.currentContext?.loaderOverlay.show();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('appId', appId);
+    await _initApp();
+    await mutableData.app!.logIn(credentials);
+    await _initRealm();
+    _appKey.currentContext?.loaderOverlay.hide();
   }
 
   _initApp() async {
