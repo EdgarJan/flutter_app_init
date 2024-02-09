@@ -66,8 +66,7 @@ class MongoDataWrapper extends InheritedWidget {
           key: appKey,
           child: child,
         )) {
-    _initApp();
-    _initRealm();
+    _initApp().then((_) =>_initRealm());
   }
 
   @override
