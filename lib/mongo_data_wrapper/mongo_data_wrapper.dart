@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class MongoDataWrapper extends InheritedWidget {
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
@@ -65,9 +64,7 @@ class MongoDataWrapper extends InheritedWidget {
           supportedLocales: supportedLocales,
           key: appKey,
           child: child,
-        )) {
-    _initApp().then((_) =>_initRealm());
-  }
+        ));
 
   @override
   bool updateShouldNotify(covariant MongoDataWrapper oldWidget) {
@@ -100,23 +97,24 @@ class MongoDataWrapper extends InheritedWidget {
     }
   }
 
-  logIn({required Credentials credentials, required String appId}) async {
+  logIn({required Credentials credentials}) async {
     _appKey.currentContext?.loaderOverlay.show();
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('appId', appId);
     await _initApp();
     await mutableData.app!.logIn(credentials);
     await _initRealm();
     _appKey.currentContext?.loaderOverlay.hide();
   }
 
+  initApp({required String appId}) {
+    mutableData.appId = appId;
+    _initApp().then((_) => _initRealm());
+  }
+
   _initApp() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? appId = prefs.getString('appId');
-    if (appId == null) {
+    if (mutableData.appId == null) {
       return;
     }
-    mutableData.appConfig = AppConfiguration(appId);
+    mutableData.appConfig = AppConfiguration(mutableData.appId!);
     mutableData.app = App((mutableData.appConfig)!);
   }
 
@@ -172,6 +170,7 @@ class MongoDataWrapper extends InheritedWidget {
 class MutableData {
   AppConfiguration? appConfig;
   App? app;
+  String? appId;
 }
 
 class MaterialAppWrapper extends StatelessWidget {
