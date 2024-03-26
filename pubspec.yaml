@@ -1,14 +1,14 @@
 name: flutter_app_init
-version: 0.8.0
+version: 0.9.0
 environment:
-  sdk: '>=3.2.6 <4.0.0'
-  flutter: ">=3.16.9"
+  sdk: '>=3.3.2 <4.0.0'
+  flutter: ">=3.19.4"
 dependencies:
   flutter:
     sdk: flutter
-  easy_localization: 3.0.4
-  sentry_flutter: 7.16.1
-  realm: 1.9.0
+  easy_localization: 3.0.5
+  sentry_flutter: 7.18.0
+  realm: 2.0.0
   loader_overlay: 4.0.0
 dev_dependencies:
   flutter_test:

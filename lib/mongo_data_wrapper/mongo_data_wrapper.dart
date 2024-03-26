@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:realm/realm.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:flutter/foundation.dart' as foundation;
 
 class MongoDataWrapper extends InheritedWidget {
   final ValueNotifier<Realm?> realm = ValueNotifier<Realm?>(null);
@@ -53,7 +54,7 @@ class MongoDataWrapper extends InheritedWidget {
     TransitionBuilder? builder,
     List<Locale>? supportedLocales,
     VisualDensity? visualDensity,
-    Key? key,
+    foundation.Key? key,
     required Widget child,
     required GlobalKey<NavigatorState> appKey,
   })  : _appKey = appKey,
