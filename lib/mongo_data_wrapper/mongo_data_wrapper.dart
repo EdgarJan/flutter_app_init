@@ -28,7 +28,7 @@ class MongoDataWrapper extends InheritedWidget {
     TransitionBuilder? builder,
     List<Locale>? supportedLocales,
     VisualDensity? visualDensity,
-    Key? key,
+    foundation.Key? key,
     required Widget child,
   }) {
     final GlobalKey<NavigatorState> appKey = GlobalKey<NavigatorState>();
