@@ -76,7 +76,7 @@ class MongoDataWrapper extends InheritedWidget {
     return context.dependOnInheritedWidgetOfExactType<MongoDataWrapper>();
   }
 
-  dynamic user() {
+  User? user() {
     return mutableData.app?.currentUser;
   }
 
