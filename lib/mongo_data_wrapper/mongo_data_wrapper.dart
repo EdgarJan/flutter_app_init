@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 import 'package:realm/realm.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+// import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter/foundation.dart' as foundation;
 
 class MongoDataWrapper extends InheritedWidget {
@@ -130,9 +130,9 @@ class MongoDataWrapper extends InheritedWidget {
           BuildContext context = _appKey.currentState!.context;
           syncErrorCallback?.call(error, context);
         }
-        Sentry.captureException(
-          error,
-        );
+        // Sentry.captureException(
+        //   error,
+        // );
         if (error.message?.contains("breaking schema change") == true) {
           _resetLocalDatabase();
         }
